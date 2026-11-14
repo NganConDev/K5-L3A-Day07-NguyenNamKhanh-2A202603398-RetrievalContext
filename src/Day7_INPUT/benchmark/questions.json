@@ -1,0 +1,242 @@
+[
+  {
+    "id": "dev_01",
+    "split": "dev",
+    "question": "What does the book say a professional programmer must do to be called professional?",
+    "expected_answer": "Write clean code and do their best work.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 4,
+    "evidence_quote": "Writing clean code is what you must do in order to call yourself a professional.",
+    "filter": { "section": "front_matter" }
+  },
+  {
+    "id": "dev_02",
+    "split": "dev",
+    "question": "What is the book's message about doing anything less than your best?",
+    "expected_answer": "There is no reasonable excuse for doing anything less than your best.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 4,
+    "evidence_quote": "There is no reasonable excuse for doing anything less than your best.",
+    "filter": { "section": "front_matter" }
+  },
+  {
+    "id": "dev_03",
+    "split": "dev",
+    "question": "What does the author say about the value of small things?",
+    "expected_answer": "Small things matter because details shape quality and craftsmanship.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 20,
+    "evidence_quote": "Small things matter.",
+    "filter": { "section": "foreword" }
+  },
+  {
+    "id": "dev_04",
+    "split": "dev",
+    "question": "Why are small details important in software work according to the foreword?",
+    "expected_answer": "Because details influence quality, architecture, and professional practice.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 20,
+    "evidence_quote": "God is in the details.",
+    "filter": { "section": "foreword" }
+  },
+  {
+    "id": "dev_05",
+    "split": "dev",
+    "question": "What does the foreword say most of software work is?",
+    "expected_answer": "Maintenance and repair.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 21,
+    "evidence_quote": "80% or more of what we do is quaintly called maintenance: the act of repair.",
+    "filter": { "section": "foreword" }
+  },
+  {
+    "id": "dev_06",
+    "split": "dev",
+    "question": "Which phrase in the foreword compares cleanliness to virtue?",
+    "expected_answer": "Cleanliness is next to godliness.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 22,
+    "evidence_quote": "Cleanliness is next to godliness.",
+    "filter": { "section": "foreword" }
+  },
+  {
+    "id": "dev_07",
+    "split": "dev",
+    "question": "What does the foreword say quality is the result of?",
+    "expected_answer": "A million selfless acts of care.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 23,
+    "evidence_quote": "Quality is the result of a million selfless acts of care.",
+    "filter": { "section": "foreword" }
+  },
+  {
+    "id": "dev_08",
+    "split": "dev",
+    "question": "What is the answer to the core question in the introduction?",
+    "expected_answer": "Craftsmanship.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 26,
+    "evidence_quote": "The answer is: craftsmanship.",
+    "filter": { "section": "introduction" }
+  },
+  {
+    "id": "dev_09",
+    "split": "dev",
+    "question": "What are the two parts of learning craftsmanship according to the introduction?",
+    "expected_answer": "Knowledge and work.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 27,
+    "evidence_quote": "There are two parts to learning craftsmanship: knowledge and work.",
+    "filter": { "section": "introduction" }
+  },
+  {
+    "id": "dev_10",
+    "split": "dev",
+    "question": "What must a learner do after acquiring knowledge of software principles?",
+    "expected_answer": "Practice continuously and grind that knowledge into their skill through hard work.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 27,
+    "evidence_quote": "you must also grind that knowledge into your fingers, eyes, and gut by working hard and practicing.",
+    "filter": { "section": "introduction" }
+  },
+  {
+    "id": "dev_11",
+    "split": "dev",
+    "question": "What does the introduction say the result is when the authors identify how they think about code?",
+    "expected_answer": "A knowledge base describing how they write, read, and clean code.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 28,
+    "evidence_quote": "The result is a knowledge base that describes the way we think when we write, read, and clean code.",
+    "filter": { "section": "introduction" }
+  },
+  {
+    "id": "dev_12",
+    "split": "dev",
+    "question": "What does the author say to do when you are learning to ride a bike or code?",
+    "expected_answer": "You need both knowledge and repeated practice; theory alone is not enough.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 27,
+    "evidence_quote": "Coding is no different. We could write down all the 'feel good' principles of clean code and then trust you to do the work.",
+    "filter": { "section": "introduction" }
+  },
+  {
+    "id": "dev_13",
+    "split": "dev",
+    "question": "What does the book say about the difference between good software and bad software?",
+    "expected_answer": "Good software is a product of discipline, care, and craftsmanship, not just speed or output.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 26,
+    "evidence_quote": "The answer is: craftsmanship.",
+    "filter": { "section": "introduction" }
+  },
+  {
+    "id": "dev_14",
+    "split": "dev",
+    "question": "How does the foreword describe the role of maintenance in software development?",
+    "expected_answer": "It is a central activity and a core professional responsibility.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 21,
+    "evidence_quote": "maintenance: the act of repair.",
+    "filter": { "section": "foreword" }
+  },
+  {
+    "id": "dev_15",
+    "split": "dev",
+    "question": "What does the author suggest is the practical meaning of caring about details?",
+    "expected_answer": "It means paying attention to the small things that determine quality and trust in the product.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 20,
+    "evidence_quote": "Small things matter.",
+    "filter": { "section": "foreword" }
+  },
+  {
+    "id": "dev_16",
+    "split": "dev",
+    "question": "What is the exact command to deploy the application to a production Kubernetes cluster according to this book?",
+    "expected_answer": null,
+    "gold_source_id": null,
+    "gold_page": null,
+    "evidence_quote": null,
+    "filter": { "section": "general" }
+  },
+  {
+    "id": "dev_17",
+    "split": "dev",
+    "question": "Which page in the book contains the full JavaScript API reference for a web application framework?",
+    "expected_answer": null,
+    "gold_source_id": null,
+    "gold_page": null,
+    "evidence_quote": null,
+    "filter": { "section": "general" }
+  },
+  {
+    "id": "test_01",
+    "split": "test",
+    "question": "What is the central professional standard implied by the front matter of the book?",
+    "expected_answer": "Do your best and write clean code.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 4,
+    "evidence_quote": "There is no reasonable excuse for doing anything less than your best.",
+    "filter": { "section": "front_matter" }
+  },
+  {
+    "id": "test_02",
+    "split": "test",
+    "question": "Why does the foreword emphasize the idea that small actions matter?",
+    "expected_answer": "Because small, disciplined acts create dependable quality and professionalism.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 20,
+    "evidence_quote": "Small things matter.",
+    "filter": { "section": "foreword" }
+  },
+  {
+    "id": "test_03",
+    "split": "test",
+    "question": "What does the foreword say about the relationship between cleanliness and good engineering?",
+    "expected_answer": "Cleanliness is a sign and foundation of quality engineering practice.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 22,
+    "evidence_quote": "Cleanliness is next to godliness.",
+    "filter": { "section": "foreword" }
+  },
+  {
+    "id": "test_04",
+    "split": "test",
+    "question": "According to the introduction, what must a software developer combine to become skilled?",
+    "expected_answer": "Knowledge and practice.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 27,
+    "evidence_quote": "There are two parts to learning craftsmanship: knowledge and work.",
+    "filter": { "section": "introduction" }
+  },
+  {
+    "id": "test_05",
+    "split": "test",
+    "question": "What does the author say is the result of repeated acts of care in software work?",
+    "expected_answer": "Quality.",
+    "gold_source_id": "software-engineering-public-domain",
+    "gold_page": 23,
+    "evidence_quote": "Quality is the result of a million selfless acts of care.",
+    "filter": { "section": "foreword" }
+  },
+  {
+    "id": "test_06",
+    "split": "test",
+    "question": "Which chapter of the book includes a complete benchmark for machine learning model deployment in production?",
+    "expected_answer": null,
+    "gold_source_id": null,
+    "gold_page": null,
+    "evidence_quote": null,
+    "filter": { "section": "general" }
+  },
+  {
+    "id": "test_07",
+    "split": "test",
+    "question": "What exact code snippet does the author provide to configure Docker Compose for a three-tier distributed system?",
+    "expected_answer": null,
+    "gold_source_id": null,
+    "gold_page": null,
+    "evidence_quote": null,
+    "filter": { "section": "general" }
+  }
+]
