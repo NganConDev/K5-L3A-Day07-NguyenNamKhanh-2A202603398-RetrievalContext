@@ -10,7 +10,14 @@ import sys
 from pathlib import Path
 from typing import Any, Protocol
 
-from baseline import pack_context
+STARTER_DIR = Path(__file__).resolve().parent
+if str(STARTER_DIR) not in sys.path:
+    sys.path.insert(0, str(STARTER_DIR))
+
+try:
+    from baseline import pack_context
+except ModuleNotFoundError:  # pragma: no cover - package import fallback
+    from starter.baseline import pack_context
 
 ROOT = Path(__file__).resolve().parents[1]
 DAY7_INPUT = ROOT / "src" / "Day7_INPUT"
@@ -208,3 +215,199 @@ def run_agent(question: str, controller: Controller, retriever: Retriever, *,
         else:
             raise ValueError('action phải là search hoặc answer')
     return {'status': 'abstain', 'answer': 'Không đủ bằng chứng để trả lời.', 'citations': [], 'events': events}
+
+
+def _normalize_text(text: str) -> str:
+    return " ".join(str(text or "").replace("\n", " ").split())
+
+
+def _tokenize(text: str) -> list[str]:
+    import re
+    import unicodedata
+    normalized = unicodedata.normalize("NFKC", _normalize_text(text)).casefold()
+    return re.findall(r"[a-z0-9]+", normalized)
+
+
+class DenseVectorRetrieval:
+    """Dense query-to-chunk retrieval using the Day 7 embedder or a local TF-IDF fallback."""
+
+    def __init__(self, chunks: list[dict[str, Any]], *, strategy: str = "A") -> None:
+        self.chunks = chunks
+        self.strategy = strategy
+        self.embedder = None
+        try:
+            if MyEmbedder is not None:
+                self.embedder = MyEmbedder(model_name="tfidf-local")
+                texts = [c.get("text", "") for c in chunks if c.get("text")]
+                if texts:
+                    self.embedder.fit(texts)
+        except Exception:  # pragma: no cover - fallback is allowed
+            self.embedder = None
+
+    def search(self, query: str, *, filters: dict[str, Any] | None = None, top_k: int = 3) -> list[dict[str, Any]]:
+        query_text = _normalize_text(query)
+        filtered = self._apply_filters(self.chunks, filters)
+        if not filtered:
+            return []
+
+        if self.embedder is not None:
+            qv = self.embedder.embed_query(query_text)
+            doc_vectors = self.embedder.embed_documents([c.get("text", "") for c in filtered])
+            ranked = []
+            for chunk, vector in zip(filtered, doc_vectors):
+                score = sum(a * b for a, b in zip(qv, vector))
+                ranked.append({**chunk, "score": float(score), "strategy": self.strategy})
+            ranked.sort(key=lambda c: (-c["score"], str(c.get("id", ""))))
+            return ranked[:top_k]
+
+        # fallback: token overlap score when embeddings are not available
+        query_tokens = set(_tokenize(query_text))
+        ranked = []
+        for chunk in filtered:
+            tokens = set(_tokenize(chunk.get("text", "")))
+            overlap = len(query_tokens & tokens)
+            ranked.append({**chunk, "score": float(overlap), "strategy": self.strategy})
+        ranked.sort(key=lambda c: (-c["score"], str(c.get("id", ""))))
+        return ranked[:top_k]
+
+    @staticmethod
+    def _apply_filters(chunks: list[dict[str, Any]], filters: dict[str, Any] | None) -> list[dict[str, Any]]:
+        if not filters:
+            return chunks
+        filtered = []
+        for chunk in chunks:
+            metadata = chunk.get("metadata") or {}
+            ok = True
+            for key, value in filters.items():
+                if metadata.get(key) != value and chunk.get(key) != value:
+                    ok = False
+                    break
+            if ok:
+                filtered.append(chunk)
+        return filtered
+
+
+class LexicalTFIDFRetrieval:
+    """TF-IDF lexical retrieval using cosine similarity on chunk text."""
+
+    def __init__(self, chunks: list[dict[str, Any]]) -> None:
+        self.chunks = chunks
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+        self.vectorizer = TfidfVectorizer(ngram_range=(1, 2), stop_words="english")
+        self.cosine_similarity = cosine_similarity
+        self.matrix = self.vectorizer.fit_transform([c.get("text", "") for c in chunks if c.get("text")])
+
+    def search(self, query: str, *, filters: dict[str, Any] | None = None, top_k: int = 3) -> list[dict[str, Any]]:
+        filtered = DenseVectorRetrieval._apply_filters(self.chunks, filters)
+        if not filtered:
+            return []
+        texts = [c.get("text", "") for c in filtered]
+        if not texts:
+            return []
+        vectorizer = TfidfVectorizer(ngram_range=(1, 2), stop_words="english")
+        matrix = vectorizer.fit_transform(texts)
+        q_vec = vectorizer.transform([query])
+        sims = self.cosine_similarity(q_vec, matrix)[0]
+        ranked = []
+        for chunk, score in zip(filtered, sims):
+            ranked.append({**chunk, "score": float(score), "strategy": "tfidf"})
+        ranked.sort(key=lambda c: (-c["score"], str(c.get("id", ""))))
+        return ranked[:top_k]
+
+
+class BM25Retrieval:
+    """BM25 lexical retrieval implemented in pure Python; no external BM25 dependency required."""
+
+    def __init__(self, chunks: list[dict[str, Any]]) -> None:
+        self.chunks = chunks
+        self.documents = [_tokenize(c.get("text", "")) for c in chunks]
+        self.N = len(self.documents)
+        self.df = {}
+        for doc in self.documents:
+            for term in set(doc):
+                self.df[term] = self.df.get(term, 0) + 1
+        self.avgdl = sum(len(doc) for doc in self.documents) / max(1, self.N)
+        self.k1 = 1.5
+        self.b = 0.75
+
+    def search(self, query: str, *, filters: dict[str, Any] | None = None, top_k: int = 3) -> list[dict[str, Any]]:
+        filtered = DenseVectorRetrieval._apply_filters(self.chunks, filters)
+        if not filtered:
+            return []
+        q_tokens = _tokenize(query)
+        ranked = []
+        for chunk in filtered:
+            doc_tokens = _tokenize(chunk.get("text", ""))
+            score = 0.0
+            for term in set(q_tokens):
+                if term not in self.df:
+                    continue
+                tf = doc_tokens.count(term)
+                idf = __import__("math").log(((self.N - self.df[term] + 0.5) / (self.df[term] + 0.5)) + 1.0)
+                denom = tf + self.k1 * (1 - self.b + self.b * len(doc_tokens) / max(1.0, self.avgdl))
+                score += idf * ((tf * (self.k1 + 1)) / denom)
+            ranked.append({**chunk, "score": float(score), "strategy": "bm25"})
+        ranked.sort(key=lambda c: (-c["score"], str(c.get("id", ""))))
+        return ranked[:top_k]
+
+
+class HybridRRFRetrieval:
+    """Reciprocal Rank Fusion combining dense and lexical rankings."""
+
+    def __init__(self, chunks: list[dict[str, Any]]) -> None:
+        self.chunks = chunks
+
+    def search(self, query: str, *, filters: dict[str, Any] | None = None, top_k: int = 3) -> list[dict[str, Any]]:
+        dense = DenseVectorRetrieval(self.chunks).search(query, filters=filters, top_k=top_k)
+        tfidf = LexicalTFIDFRetrieval(self.chunks).search(query, filters=filters, top_k=top_k)
+        scores = {}
+        for rank, item in enumerate(dense, start=1):
+            scores[item.get("id")] = scores.get(item.get("id"), 0.0) + 1.0 / (60 + rank)
+        for rank, item in enumerate(tfidf, start=1):
+            scores[item.get("id")] = scores.get(item.get("id"), 0.0) + 1.0 / (60 + rank)
+
+        merged = []
+        for chunk in self.chunks:
+            cid = chunk.get("id")
+            if cid in scores:
+                merged.append({**chunk, "score": float(scores[cid]), "strategy": "hybrid_rrf"})
+        merged.sort(key=lambda c: (-c["score"], str(c.get("id", ""))))
+        return merged[:top_k]
+
+
+class QueryExpansionRetrieval:
+    """Simple query expansion using a small domain lexicon for software engineering tasks."""
+
+    def __init__(self, chunks: list[dict[str, Any]]) -> None:
+        self.chunks = chunks
+        self.synonyms = {
+            "clean code": ["clean code", "code quality", "readability", "maintainability", "craftsmanship"],
+            "professional": ["professional", "craftsmanship", "quality", "care", "best practice"],
+            "maintenance": ["maintenance", "repair", "refactoring", "quality"],
+            "details": ["details", "care", "quality", "craftsmanship"],
+        }
+
+    def _expand(self, query: str) -> str:
+        q = _normalize_text(query).casefold()
+        expanded_terms = [q]
+        for key, values in self.synonyms.items():
+            if key in q:
+                expanded_terms.extend(values)
+        return " ".join(expanded_terms)
+
+    def search(self, query: str, *, filters: dict[str, Any] | None = None, top_k: int = 3) -> list[dict[str, Any]]:
+        expanded_query = self._expand(query)
+        return LexicalTFIDFRetrieval(self.chunks).search(expanded_query, filters=filters, top_k=top_k)
+
+
+def benchmark_retrieval_methods(chunks: list[dict[str, Any]], question: str, *, top_k: int = 3) -> dict[str, list[dict[str, Any]]]:
+    """Convenience helper to run all five retrieval methods on a single question."""
+    methods = {
+        "dense": DenseVectorRetrieval(chunks).search(question, top_k=top_k),
+        "tfidf": LexicalTFIDFRetrieval(chunks).search(question, top_k=top_k),
+        "bm25": BM25Retrieval(chunks).search(question, top_k=top_k),
+        "hybrid_rrf": HybridRRFRetrieval(chunks).search(question, top_k=top_k),
+        "query_expansion": QueryExpansionRetrieval(chunks).search(question, top_k=top_k),
+    }
+    return methods
