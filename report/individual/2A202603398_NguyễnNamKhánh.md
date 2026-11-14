@@ -63,6 +63,14 @@ Kết quả test của cấu hình đã chọn (Dense + section filter, top-k=3)
 
 Điểm này đồng nghĩa với việc cấu hình chọn theo dev vẫn ổn định khi chạy trên test, và vẫn có thể cải thiện thêm bằng query expansion hoặc rerank nếu muốn tăng độ bền trên các câu hỏi paraphrase/khái quát hơn.
 
+### So sánh test vs baseline
+
+- Baseline dev: các phương án A/B/C đều nằm trong khoảng 21–22/24, cho thấy corpus và benchmark đều có độ khó tương đối cao nhưng không vượt quá khả năng của dense retrieval.
+- Config được chốt: Dense + section filter + top-k=3 đạt 6/7 trên test, tương đương ~85.7%, nên hiệu quả không suy giảm khi chuyển từ dev sang test.
+- Về mặt tương quan, sự chênh lệch giữa dev và test chủ yếu không đến từ lỗi kỹ thuật mà từ câu hỏi quá khái quát hoặc không có evidence rõ ràng trong tài liệu; đây là lỗi sai cuối cùng cần xử lý bằng mở rộng query và tăng độ chính xác của filter metadata.
+
+Kết luận: cấu hình được chọn là một lựa chọn hợp lý và ổn định cho bài lab vì nó giảm lỗi lệch section mà không làm tăng độ phức tạp hệ thống quá mức. Lỗi sai còn lại chủ yếu là các câu hỏi paraphrase quá xa và câu thiếu evidence, nơi agent vẫn có thể trả lời hoặc lọt vào nhầm lẫn nếu không có filter section và điều kiện abstain rõ ràng.
+
 ## Agent và đánh giá
 
 - Tool, số lượt gọi, điều kiện dừng, cách chọn context và xử lý lỗi:
