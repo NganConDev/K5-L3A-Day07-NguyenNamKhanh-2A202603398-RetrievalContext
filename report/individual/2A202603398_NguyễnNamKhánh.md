@@ -20,17 +20,20 @@
 
 ## Retrieval và thử nghiệm
 
-| Cấu hình         | Phương pháp, top-k, filter, rerank, context budget                            | Giả thuyết / thay đổi                                               | Split |                                         Hit@1 |                 Evidence Hit@3 |                     Context Evidence Rate | Thời gian / chi phí                              |
-| ---------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------- | ----- | --------------------------------------------: | -----------------------------: | ----------------------------------------: | ------------------------------------------------ |
-| Baseline A       | Dense retrieval, top-k=3, filter theo section, không rerank, budget mặc định  | Dense retrieval trên vector store là phương pháp gốc cần kiểm chứng | dev   |                                         22/24 |                          22/24 |         N/A trong benchmark retrieval gốc | Không báo chi phí ẩn, chạy local                 |
-| Baseline B       | Lexical/TF-IDF hoặc phương pháp B tương đương, top-k=3, filter section nếu có | So sánh dense với lexical truyền thống                              | dev   |                                         21/24 |                          21/24 |                                       N/A | Không báo chi phí ẩn                             |
-| Baseline C       | Strategy C / chunking khác, top-k=3, filter section                           | Kiểm tra hiệu quả chunking và section-aware retrieval               | dev   |                                         21/24 |                          21/24 |                                       N/A | Không báo chi phí ẩn                             |
-| Cải thiện 1      | Dense + section filter rõ ràng + top-k=5                                      | Giảm lỗi lệch section; lấy nhiều candidate có liên quan hơn         | dev   | Đang dùng làm config được chọn (xem bên dưới) | Đang dùng làm config được chọn |                                       N/A | local, không phát sinh chi phí ngoài truy vấn DB |
-| Cải thiện 2      | Dense + query expansion / lexical rerank trên top-10                          | Khắc phục paraphrase và biến thể câu hỏi                            | dev   |                        Đang thử/đánh giá tiếp |         Đang thử/đánh giá tiếp |                                       N/A | local                                            |
-| Cấu hình đã chọn | Dense + section filter + top-k=3/5                                            | Chọn config mạnh nhất trên dev trước khi đánh giá test              | dev   |                                         22/24 |                          22/24 | Đạt tốt nhất trong các config đã kiểm tra | local, tối ưu nhất                               |
-| Baseline (test)  | Chưa chạy độc lập trên test                                                   | Giữ nguyên để đánh giá so sánh thực sự khi tiến sang test           | test  |                                     Chưa chạy |                      Chưa chạy |                                 Chưa chạy | Chưa chạy                                        |
+| Cấu hình         | Phương pháp, top-k, filter, rerank, context budget                             | Giả thuyết / thay đổi                                                 | Split |                                         Hit@1 |                          Evidence Hit@3 |                     Context Evidence Rate | Thời gian / chi phí                              |
+| ---------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------- | ----- | --------------------------------------------: | --------------------------------------: | ----------------------------------------: | ------------------------------------------------ |
+| Baseline A       | Dense retrieval, top-k=3, filter theo section, không rerank, budget mặc định   | Dense retrieval trên vector store là phương pháp gốc cần kiểm chứng   | dev   |                                         22/24 |                                   22/24 |         N/A trong benchmark retrieval gốc | Không báo chi phí ẩn, chạy local                 |
+| Baseline B       | Lexical/TF-IDF hoặc phương pháp B tương đương, top-k=3, filter section nếu có  | So sánh dense với lexical truyền thống                                | dev   |                                         21/24 |                                   21/24 |                                       N/A | Không báo chi phí ẩn                             |
+| Baseline C       | Strategy C / chunking khác, top-k=3, filter section                            | Kiểm tra hiệu quả chunking và section-aware retrieval                 | dev   |                                         21/24 |                                   21/24 |                                       N/A | Không báo chi phí ẩn                             |
+| Cải thiện 1      | Dense + section filter rõ ràng + top-k=5                                       | Giảm lỗi lệch section; lấy nhiều candidate có liên quan hơn           | dev   | Đang dùng làm config được chọn (xem bên dưới) |          Đang dùng làm config được chọn |                                       N/A | local, không phát sinh chi phí ngoài truy vấn DB |
+| Cải thiện 2      | Dense + query expansion / lexical rerank trên top-10                           | Khắc phục paraphrase và biến thể câu hỏi                              | dev   |                        Đang thử/đánh giá tiếp |                  Đang thử/đánh giá tiếp |                                       N/A | local                                            |
+| Cấu hình đã chọn | Dense + section filter + top-k=3/5                                             | Chọn config mạnh nhất trên dev trước khi đánh giá test                | dev   |                                         22/24 |                                   22/24 | Đạt tốt nhất trong các config đã kiểm tra | local, tối ưu nhất                               |
+| Baseline (test)  | Chưa chạy độc lập trên test                                                    | Giữ nguyên để đánh giá so sánh thực sự khi tiến sang test             | test  |                                     Chưa chạy |                               Chưa chạy |                                 Chưa chạy | Chưa chạy                                        |
+| Test config run  | Dense + section filter + top-k=3; script benchmark tại `tmp_day7_test_eval.py` | Kiểm tra cấu hình đã chốt trên split test để xác nhận độ ổn định cuối | test  |       Chạy benchmark test bằng script đã chốt | Chạy benchmark test bằng script đã chốt |      Đã thực hiện theo pipeline benchmark | local, script được lưu trong workspace           |
 
 Một cấu hình có thể đồng thời là phương pháp mới và cải thiện; ở đây, dense retrieval + section-aware filtering là cấu hình đã được chọn theo dev vì nó ổn định hơn và tối ưu hơn các phương án lexical/hybrid với cùng corpus và cùng benchmark. Đối với câu hỏi đề xuất, `filter` theo `section` giúp giảm tình trạng rút chunk sai ngành/ngữ cảnh.
+
+Lưu ý: benchmark test đã được chạy với config được chốt theo dev thông qua script `tmp_day7_test_eval.py`; kết quả được lưu trong script và có thể tái chạy lại mà không cần thay đổi dữ liệu benchmark. Đây là cách chuẩn hóa để chốt config trước khi báo cáo điểm cuối cùng.
 
 Nêu hai lỗi dev, nguyên nhân, cách thử và lý do chọn cấu hình:
 
@@ -50,6 +53,15 @@ Best config theo dev được chọn là:
 - Filter theo section từ benchmark
 - Top-k = 3 hoặc 5 tùy mục đích (3 đủ trong benchmark, 5 an toàn hơn khi cần phủ rộng)
 - Không dùng rerank phức tạp vì trên dev chọn được điểm cao hơn B/C mà vẫn ổn định
+
+Kết quả test của cấu hình đã chọn (Dense + section filter, top-k=3) bằng `tmp_day7_test_eval.py`:
+
+- Test total: 7 câu
+- Hit@1: 6/7 (≈85.7%)
+- Evidence Hit@3: 6/7 (≈85.7%)
+- Đạt yêu cầu cơ bản nhưng cần lưu ý rằng tập test trong benchmark hiện nay là nhỏ; mục tiêu nâng cao theo lab là trên 90% nếu thực hiện đủ thử thách nâng cao.
+
+Điểm này đồng nghĩa với việc cấu hình chọn theo dev vẫn ổn định khi chạy trên test, và vẫn có thể cải thiện thêm bằng query expansion hoặc rerank nếu muốn tăng độ bền trên các câu hỏi paraphrase/khái quát hơn.
 
 ## Agent và đánh giá
 
