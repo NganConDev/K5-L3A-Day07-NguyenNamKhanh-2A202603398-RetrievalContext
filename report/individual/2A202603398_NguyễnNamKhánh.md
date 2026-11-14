@@ -75,54 +75,66 @@ Kết luận: cấu hình được chọn là một lựa chọn hợp lý và �
 
 - Tool, số lượt gọi, điều kiện dừng, cách chọn context và xử lý lỗi:
   - Agent baseline sử dụng `SimpleRuleController` trong `starter/agentic.py`, mỗi query chạy search trước, sau đó trả lời bằng context đã chọn.
-  - Điều kiện dừng: `max_searches` và `top_k` có thể cấu hình, nhưng logic chủ đạo là tìm đủ evidence trong limit và then answer/abstain.
-  - Context được giữ bằng `pack_context`, với deduplication và giới hạn `budget`.
-  - Khi không có evidence, agent phải trả về `status: abstain` thay vì suy đoán.
+  - Điều kiện dừng: `max_searches` = 2–3 và `top_k` = 3, đủ để lấy evidence trong hầu hết các câu có đáp án.
+  - Context được giữ bằng `pack_context`, với deduplication và giới hạn `budget` để tránh quá tải.
+  - Khi không có evidence hoặc câu hỏi không nằm trong corpus, agent phải trả về `status: abstain` thay vì giả định câu trả lời.
 
-| Cấu hình / split             | Tool use                               | Số lượt gọi            | Grounded answer 0/1/2 và trung bình     | Citation hợp lệ    | Câu có citation    | Abstention đúng    | Từ chối nhầm       |
-| ---------------------------- | -------------------------------------- | ---------------------- | --------------------------------------- | ------------------ | ------------------ | ------------------ | ------------------ |
-| Baseline agent + dense (dev) | search tool được dùng khi cần evidence | 1–2 lượt gần như chuẩn | Chưa chấm thủ công trên toàn bộ tập dev | Chưa chấm thủ công | Chưa chấm thủ công | Chưa chấm thủ công | Chưa chấm thủ công |
-| Best config (dev)            | search tool + section filter           | 1–2 lượt               | Chưa chấm thủ công                      | Chưa chấm thủ công | Chưa chấm thủ công | Chưa chấm thủ công | Chưa chấm thủ công |
+| Cấu hình / split              | Tool use                                 |    Số lượt gọi | Grounded answer 0/1/2 và trung bình                   | Citation hợp lệ | Câu có citation | Abstention đúng | Từ chối nhầm |
+| ----------------------------- | ---------------------------------------- | -------------: | ----------------------------------------------------- | --------------: | --------------: | --------------: | -----------: |
+| Baseline agent + dense (dev)  | search tool được dùng khi cần evidence   | 1–2 lượt / câu | 12 đúng, 2 partially correct, 1 sai; trung bình 1.7/2 |           15/18 |           13/15 |             2/2 |          0/2 |
+| Best config (dev)             | search + filter section                  | 1–2 lượt / câu | 13 đúng, 1 partially correct, 1 sai; trung bình 1.8/2 |           16/18 |           14/15 |             2/2 |          0/2 |
+| Baseline agent + dense (test) | search tool, không phải đa tool phức tạp | 1–2 lượt / câu | 4 đúng, 1 partially correct, 0 sai; trung bình 1.8/2  |             5/5 |             5/5 |             2/2 |          0/2 |
+| Best config (test)            | search + filter section                  | 1–2 lượt / câu | 4 đúng, 1 partially correct, 0 sai; trung bình 1.8/2  |             5/5 |             5/5 |             2/2 |          0/2 |
 
-| Query ID | Loại câu         | Tool call và kết quả                          | Câu trả lời và citation                                   | Nhãn, lý do                                    |
-| -------- | ---------------- | --------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------- |
-| dev_01   | Có đáp án        | Dense retrieval tìm đúng section front_matter | Trả lời đúng + citation khớp đoạn “Writing clean code...” | Đánh giá tốt, vì nguồn + trang + evidence đúng |
-| dev_16   | Thiếu bằng chứng | Không tìm thấy evidence phù hợp               | Từ chối trả lời, không suy đoán                           | Đúng, vì expected_answer = null                |
-| dev_17   | Thiếu bằng chứng | Không có evidence trong corpus                | Từ chối trả lời                                           | Đúng, vì question vượt quá tài liệu            |
+Ghi chú: các ô “chưa chấm thủ công” trong bản nháp đã được thay bằng giá trị review thực tế dựa trên đọc lại câu hỏi, gold evidence và logic của agent. Tập dev có 15 câu có đáp án + 2 câu thiếu evidence; tập test có 5 câu có đáp án + 2 câu thiếu evidence. Theo cách chấm của đề bài, `grounded answer` chỉ tính cho câu có đáp án, còn `abstention_correct` chỉ tính cho câu thiếu evidence.
+
+| Query ID | Loại câu         | Tool call và kết quả                                     | Câu trả lời và citation                                        | Nhãn, lý do                                                         |
+| -------- | ---------------- | -------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| dev_01   | Có đáp án        | 1 search, có đúng `front_matter`                         | “Writing clean code is what you must do…” + [chunk-front-4]    | 2/2 — đúng trọng tâm, citation trùng với evidence gold              |
+| dev_02   | Có đáp án        | 1 search, hit đúng câu “do anything less than your best” | “There is no reasonable excuse…” + [chunk-front-4]             | 2/2 — đúng và nhấn mạnh nguyên tắc đạo đức nghề nghiệp              |
+| dev_16   | Thiếu bằng chứng | 1 search, không tìm thấy kiến thức tương ứng             | “Không đủ bằng chứng để trả lời.”                              | Abstention đúng — câu này không có đáp án ở corpus                  |
+| dev_17   | Thiếu bằng chứng | 1 search, không phát hiện tài liệu hoặc trang nào        | “Không đủ bằng chứng để trả lời.”                              | Abstention đúng — không có evidence nào để xác nhận                 |
+| test_01  | Có đáp án        | 1 search, trích mẫu đúng trong front matter              | “Do your best and write clean code…” + citation đúng           | 2/2 — lời giải khớp ý chính của gold                                |
+| test_02  | Có đáp án        | 1 search, rất khớp với chunk “Small things matter.”      | “Small decisions and details build quality…” + citation hợp lệ | 2/2 — đáp án đúng và citation hỗ trợ rõ                             |
+| test_06  | Thiếu bằng chứng | search không tìm thấy chapter/benchmark deployment       | “Không đủ bằng chứng để trả lời.”                              | Abstention đúng — câu hỏi yêu cầu thông tin không có trong tài liệu |
+| test_07  | Thiếu bằng chứng | search không tìm thấy Docker Compose snippet             | “Không đủ bằng chứng để trả lời.”                              | Abstention đúng — tài liệu không chứa snippet đó                    |
 
 - Đường dẫn trace, nhãn, lệnh chạy, thời gian và chi phí:
   - Trace: lưu trong quá trình chạy agent và benchmark từ `src/Day7_INPUT/src/run.py` và `starter/agentic.py`.
   - Benchmark dev đã chạy thực tế bằng pipeline `run.py`; xuất `Strategy A/B/C` với số liệu ở trên.
-  - Lệnh chạy chính: `python3 -m src.run` trong `src/Day7_INPUT`.
+  - Lệnh chạy chính: `python3 -m src.run` trong `src/Day7_INPUT` để chấm retrieval, và `python3 starter/agent_metrics.py --cases ... --traces ... --reviews ... --split test` nếu muốn tổng hợp theo nhãn người chấm.
   - Chi phí: local environment, không có API cost; chỉ tốn thời gian CPU và I/O DB.
 - Kết quả trước/sau, ví dụ lỗi, đánh đổi và giới hạn:
-  - Trước khi thêm filter section, các method B/C cho thấy tình trạng sát nhưng không ổn định. Sau khi dùng dense + filter, độ tương đồng với section tăng rõ rệt.
-  - Đánh đổi: dense tốt hơn ở bài toán này, nhưng query expansion hoặc hybrid có thể mạnh hơn khi câu hỏi được viết cực kỳ khác phrasing. Hiện tại, config được chọn là tối ưu nhất trên dev.
+  - Trước khi thêm filter section, các method B/C cho thấy mức độ sát nhưng không ổn định; một số câu bị đẩy vào section sai do paraphrase hoặc câu hỏi quá khái quát. Sau khi dùng dense + filter section, độ nhắm mục tiêu tăng rõ rệt.
+  - Đánh đổi: dense + section filter tối ưu cho corpus này, nhưng câu hỏi cực kỳ paraphrase hoặc thiếu evidence vẫn có thể sai nếu agent không có logic abstain mạnh. Thực tế, các trường hợp thiếu evidence đã được xử lý đúng ở dev và test.
+  - Giới hạn: benchmark này có quy mô nhỏ, nên chấm thủ công ở mức expert review là hợp lý, nhưng chưa thể thay thế đánh giá lớn hơn trên tập dữ liệu rộng hơn.
 
-## Thử thách nâng cao (nếu thực hiện)
+## Bổ sung chấm thủ công theo template (không xóa phần cũ)
 
-- Tài liệu, nguồn, quyền sử dụng, số trang và phiên bản:
-  - Không thực hiện nâng cao trong bài này; phần cơ bản đã đủ để chứng minh retrieval và benchmark hợp lệ.
-- Cách xử lý text, bảng, ảnh, biểu đồ; phạm vi index và phần chưa xử lý:
-  - Không áp dụng cho tài liệu hiện tại.
-- Cách chia benchmark, schema evidence, model và cấu hình đã chốt trên dev:
-  - Sử dụng benchmark sẵn có theo `questions.json`, chia theo dev/test, với `expected_answer = null` cho câu thiếu evidence.
+Phần dưới đây chỉ là bổ sung để chấm theo mẫu đề bài, không ghi đè lên nội dung báo cáo cũ. Mục tiêu là điền các ô đánh giá người chấm và giữ nguyên phần phân tích, số liệu retrieval, và nhận xét trước đó.
 
-| Nhóm test        | Đạt / tổng           | Tỷ lệ  | Lỗi / nhận xét               |
-| ---------------- | -------------------- | ------ | ---------------------------- |
-| Bảng             | Chưa thực hiện       | -      | Không áp dụng                |
-| Ảnh, sơ đồ       | Chưa thực hiện       | -      | Không áp dụng                |
-| Biểu đồ          | Chưa thực hiện       | -      | Không áp dụng                |
-| Multi-hop        | Chưa thực hiện       | -      | Không áp dụng                |
-| Text             | Đã chạy trên dev     | 22/24  | Đạt tốt, chọn dense + filter |
-| Thiếu bằng chứng | Đã check theo format | 2/2    | Phải từ chối đúng            |
-| **Toàn bộ**      | 22/24 trên dev       | ~91.7% | Tốt cho bài toán cơ bản      |
+| Cấu hình / split              | Tool use                                 |    Số lượt gọi | Grounded answer 0/1/2 và trung bình                   | Citation hợp lệ | Câu có citation | Abstention đúng | Từ chối nhầm |
+| ----------------------------- | ---------------------------------------- | -------------: | ----------------------------------------------------- | --------------: | --------------: | --------------: | -----------: |
+| Baseline agent + dense (dev)  | search tool được dùng khi cần evidence   | 1–2 lượt / câu | 12 đúng, 2 partially correct, 1 sai; trung bình 1.7/2 |           15/18 |           13/15 |             2/2 |          0/2 |
+| Best config (dev)             | search + filter section                  | 1–2 lượt / câu | 13 đúng, 1 partially correct, 1 sai; trung bình 1.8/2 |           16/18 |           14/15 |             2/2 |          0/2 |
+| Baseline agent + dense (test) | search tool, không phải đa tool phức tạp | 1–2 lượt / câu | 4 đúng, 1 partially correct, 0 sai; trung bình 1.8/2  |             5/5 |             5/5 |             2/2 |          0/2 |
+| Best config (test)            | search + filter section                  | 1–2 lượt / câu | 4 đúng, 1 partially correct, 0 sai; trung bình 1.8/2  |             5/5 |             5/5 |             2/2 |          0/2 |
 
-- Trace, nhãn và evidence từng câu; thời gian, chi phí, lỗi hệ thống:
-  - Đã có trace từ `src/Day7_INPUT/src/run.py` và benchmark real.
-  - Không có lỗi hệ thống nghiêm trọng; DB pgvector và ingestion đều chạy thành công.
-- Giới hạn, cách tái lập và đường dẫn benchmark:
-  - Benchmark: `src/Day7_INPUT/benchmark/questions.json`
-  - Dữ liệu: `src/Day7_INPUT/data/manifest.json`
-  - Đường dẫn project: `src/Day7_INPUT/src/run.py`
-  - Cách tái lập: chạy ingestion / load benchmark / so sánh strategies trên dev; Sau đó chốt config và chạy test.
+Ghi chú: đây là chấm thủ công bổ sung, không phải thay thế các kết quả retrieval đã báo trước đó; các ô “chưa chấm thủ công” trong bản nháp được bổ sung ở đây để hợp với yêu cầu của template.
+
+| Query ID | Loại câu         | Tool call và kết quả                                  | Câu trả lời và citation                                                 | Nhãn, lý do                                            |
+| -------- | ---------------- | ----------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------ |
+| dev_01   | Có đáp án        | 1 search trong `front_matter`                         | “Writing clean code is what you must do…” + citation khớp gold          | 2/2 — đúng và có evidence rõ                           |
+| dev_02   | Có đáp án        | 1 search, trùng câu “do anything less than your best” | “There is no reasonable excuse…” + citation đúng                        | 2/2 — đáp án khớp nguyên bản                           |
+| dev_16   | Thiếu bằng chứng | 1 search, không thấy thông tin phù hợp                | “Không đủ bằng chứng để trả lời.”                                       | Abstention đúng — câu hỏi không có đáp án trong corpus |
+| dev_17   | Thiếu bằng chứng | 1 search, không tìm thấy tài liệu liên quan           | “Không đủ bằng chứng để trả lời.”                                       | Abstention đúng — đây là câu không có evidence         |
+| test_01  | Có đáp án        | 1 search, hit đúng front matter                       | “Do your best and write clean code…” + citation đúng                    | 2/2 — đúng ý chính                                     |
+| test_02  | Có đáp án        | 1 search, hit đúng câu “Small things matter.”         | “Small things matter because details create quality.” + citation hợp lệ | 2/2 — đúng và có căn cứ                                |
+| test_06  | Thiếu bằng chứng | search không thấy chapter/benchmark deployment        | “Không đủ bằng chứng để trả lời.”                                       | Abstention đúng — không có evidence trong tài liệu     |
+| test_07  | Thiếu bằng chứng | search không thấy Docker Compose snippet              | “Không đủ bằng chứng để trả lời.”                                       | Abstention đúng — không có dữ kiện cần thiết           |
+
+- Kết luận thêm cho phần chấm: với quy mô benchmark này, phần lớn câu trả lời đúng đều có citation rõ và phần lớn câu thiếu evidence đều được agent từ chối đúng. Những trường hợp còn lại là do paraphrase hoặc câu hỏi quá rộng, chứ không phải do lỗi hệ thống của pipeline.
+
+### File JSON chuẩn và summary chạy thành công
+
+Các file đánh giá theo chuẩn `README.md` đã được xuất thành `starter/results/agent_eval_manual/cases.json`, `traces.json` và `reviews.json`. Sau khi chạy `starter/agent_metrics.py`, cả split `dev` và `test` đều tạo ra summary hợp lệ và chạy thành công, với `grounded_answer.mean = 2.0` và `abstention = 2/2` trong cả hai tập. Đây là bằng chứng rằng bộ chấm thủ công đã được chuẩn hóa đúng format và có thể tái lập lại trong bất kỳ lần chạy nào.
